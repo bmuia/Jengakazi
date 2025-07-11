@@ -7,18 +7,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function ApplicantsScreen() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedJobs, setExpandedJobs] = useState({});
 
   useEffect(() => {
     fetchJobsWithApplicants();
   }, []);
 
+  const toggleExpand = (jobId) => {
+    setExpandedJobs((prev) => ({ ...prev, [jobId]: !prev[jobId] }));
+  };
+
   const fetchJobsWithApplicants = async () => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
-      if (!token) {
-        console.warn("No access token found.");
-        return;
-      }
+      if (!token) return;
 
       const { data } = await axios.get("http://10.0.87.42:8000/api/employer/jobs/", {
         headers: { Authorization: `Bearer ${token}` },
@@ -33,7 +35,7 @@ export default function ApplicantsScreen() {
               `http://10.0.87.42:8000/api/jobs/${job.id}/applicants/`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
-            return { ...job, applicants: Array.isArray(res.data) ? res.data : [] };
+            return { ...job, applicants: Array.isArray(res.data.results) ? res.data.results : [] };
           } catch {
             return { ...job, applicants: [] };
           }
@@ -57,38 +59,54 @@ export default function ApplicantsScreen() {
       {jobs.length === 0 ? (
         <Text style={styles.noJobs}>No jobs found for this employer yet.</Text>
       ) : (
-        jobs.map((job) => (
-          <Card style={styles.jobCard} key={job.id}>
-            <Card.Title
-              title={job.title}
-              subtitle={`Wage: $${job.wage} | ${new Date(job.availability_start).toLocaleDateString()} → ${new Date(job.availability_end).toLocaleDateString()}`}
-              titleStyle={styles.jobTitle}
-            />
-            <Card.Content>
-              <Text style={styles.applicantsLabel}>Applicants:</Text>
-              <Divider style={styles.divider} />
-              {job.applicants.length === 0 ? (
-                <Text style={styles.noApplicants}>No applications yet 🕊️</Text>
-              ) : (
-                job.applicants.map((app, index) => (
-                  <View style={styles.applicantRow} key={index}>
-                    <Avatar.Text
-                      label={app.applicant?.username?.slice(0, 2).toUpperCase() || "U"}
-                      size={36}
-                      style={styles.avatar}
-                    />
-                    <View>
-                      <Text>{app.applicant?.full_name || "Unknown"}</Text>
-                      <Text style={styles.appliedAt}>
-                        Applied: {new Date(app.applied_at).toLocaleDateString()}
+        jobs.map((job) => {
+          const expanded = expandedJobs[job.id] || false;
+          const showAll = expanded || job.applicants.length <= 3;
+          const visibleApplicants = showAll ? job.applicants : job.applicants.slice(0, 3);
+
+          return (
+            <Card style={styles.jobCard} key={job.id}>
+              <Card.Title
+                title={job.title}
+                subtitle={`Wage: $${job.wage} | ${new Date(job.availability_start).toLocaleDateString()} → ${new Date(job.availability_end).toLocaleDateString()}`}
+                titleStyle={styles.jobTitle}
+              />
+              <Card.Content>
+                <Text style={styles.applicantsLabel}>Applicants:</Text>
+                <Divider style={styles.divider} />
+                {job.applicants.length === 0 ? (
+                  <Text style={styles.noApplicants}>No applications yet 🕊️</Text>
+                ) : (
+                  <>
+                    {visibleApplicants.map((app, index) => (
+                      <View style={styles.applicantRow} key={index}>
+                        <Avatar.Text
+                          label={app.applicant?.username?.slice(0, 2).toUpperCase() || "U"}
+                          size={36}
+                          style={styles.avatar}
+                        />
+                        <View>
+                          <Text>{app.applicant?.full_name || "Unknown"}</Text>
+                          <Text style={styles.appliedAt}>
+                            Applied: {new Date(app.applied_at).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                    {job.applicants.length > 3 && (
+                      <Text
+                        onPress={() => toggleExpand(job.id)}
+                        style={styles.toggleText}
+                      >
+                        {expanded ? "Hide Applicants ▲" : "View All Applicants ▼"}
                       </Text>
-                    </View>
-                  </View>
-                ))
-              )}
-            </Card.Content>
-          </Card>
-        ))
+                    )}
+                  </>
+                )}
+              </Card.Content>
+            </Card>
+          );
+        })
       )}
     </ScrollView>
   );
@@ -147,5 +165,11 @@ const styles = StyleSheet.create({
   appliedAt: {
     fontSize: 12,
     color: "gray",
+  },
+  toggleText: {
+    textAlign: "center",
+    color: "#007bff",
+    marginTop: 6,
+    fontWeight: "600",
   },
 });
