@@ -78,7 +78,7 @@ export default function ApplicantsScreen() {
                       style={styles.avatar}
                     />
                     <View>
-                      <Text>{app.applicant?.username || "Unknown"}</Text>
+                      <Text>{app.applicant?.full_name || "Unknown"}</Text>
                       <Text style={styles.appliedAt}>
                         Applied: {new Date(app.applied_at).toLocaleDateString()}
                       </Text>
