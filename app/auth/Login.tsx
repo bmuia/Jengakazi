@@ -38,11 +38,18 @@ const handleLogin = async () => {
     if (response.ok) {
       Alert.alert("Success", result.message);
       console.log("Access token:", result.tokens.access);
+      console.log("Role", result.role)
       await AsyncStorage.setItem("accessToken", result.tokens.access);
-  await AsyncStorage.setItem("refreshToken", result.tokens.refresh);
+      await AsyncStorage.setItem("refreshToken", result.tokens.refresh);
+      await AsyncStorage.setItem("role",result.role)
 
-  router.replace('/(tabs)');
-  
+      if (result.role == "job_seeker"){
+        router.push("/(tabs)")
+      }
+      else if(result.role == "employer"){
+        router.push("/(tabs1)")
+      }
+
     } else {
       Alert.alert("Error", result.error || "Login failed");
     }
