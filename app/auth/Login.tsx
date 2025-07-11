@@ -44,10 +44,10 @@ const handleLogin = async () => {
       await AsyncStorage.setItem("role",result.role)
 
       if (result.role == "job_seeker"){
-        router.push("/(tabs)")
+        router.push("/(tabs)/job-seeker")
       }
       else if(result.role == "employer"){
-        router.push("/(tabs1)")
+        router.push("/(tabs)/employer")
       }
 
     } else {
